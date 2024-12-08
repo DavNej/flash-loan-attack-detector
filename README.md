@@ -1,99 +1,71 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+## Attack detection methodology
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+### 1. Key characteristics of flash loan attacks
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+* Known Flash Loan Providers: Aave, Balancer, etc.
+* Flash loan involves borrowing a large amount of tokens and repay it within the same transaction.
 
-## Description
+* Anomalous token movement:
+  + Large inflows followed by large outflows in the same transaction.
+  + Multiple interactions with DeFi protocols (lending, swapping, withdrawing, etc.)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+* Contract Behavior:
+  + Interaction with protocols or pools to manipulate token prices, reserves, or governance.
 
-## Project setup
+* Address History:
+  + Newly created EOAs or smart contracts involved in complex operations.
 
-```bash
-$ npm install
-```
+### 2. Detection methodology and transaction Analysis
 
-## Compile and run the project
+1. Flash Loan Detection => Identify transactions that involve:
+  + FlashLoan event emission from know providers
+  + Token inflows and immediate outflows.
 
-```bash
-# development
-$ npm run start
+2. Analyze transactions for large balance changes in contracts:
+  + Look for significant inflows followed by outflows within the same transaction.
+  + Identify unusual token swaps (e.g., large price deviations).
+  + Spot sharp reserve changes in liquidity pools or vaults.
 
-# watch mode
-$ npm run start:dev
+3. New Address Detection
+   - Check if the address initiating the transaction is a freshly deployed contract or a new EOA with no prior transaction history.
 
-# production mode
-$ npm run start:prod
-```
+4. Contract Creation
+   - Identify contracts deployed within the block that interact with Flash loan providers, DeFi protocols or pools.
 
-## Run tests
+5. Anomalous Patterns:
+  + High-value transfers involving multiple DeFi protocols (e.g., lending, swapping, withdrawing).
+  + Sequential complex operations in a single transaction.
 
-```bash
-# unit tests
-$ npm run test
+### 3. Behavioral pattern analysis
 
-# e2e tests
-$ npm run test:e2e
+Correlate behavioral anomalies to flag suspicious transactions:
 
-# test coverage
-$ npm run test:cov
-```
+* Token price manipulation.
+* Reserve depletion of a liquidity pool.
+* Sequential contract interactions within a single transaction.
 
-## Deployment
+### 4. Malicious score calculation with a weighting system
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+Assign weights to the following criteria to compute a confidence score
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+1. Flash Loan Detected
+2. New Address Used
+3. Large Token Transfers
+4. Multiple DeFi Interactions in the Transaction
+5. Abnormal Price or Reserve Changes
+6. Known Attacker Address or Similar Behavior
 
-```bash
-$ npm install -g mau
-$ mau deploy
-```
+### 5. JSON Response
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+The API should return a structured response including:
 
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+* `txHash` : Transaction hash of the detected attack.
+* `attackTime` : Timestamp of the attack.
+* `isFlashLoan` : Boolean to confirm if a flash loan was involved.
+* `attackerAddress` : Address initiating the transaction.
+* `victimAddress` : Victim of the attack.
+* `amountLostInDollars` : Approximate amount lost due to the attack.
+* `confidenceScore` : A score (0-100) representing the likelihood of malicious intent.
+* `isNewAddress` : Boolean indicating whether the transaction initiator is a new address.
+* `severity` : Categorize as critical, high, moderate, or low.
+* `additionalDetails` : Any extra information, such as involved token symbols or impacted pools.
