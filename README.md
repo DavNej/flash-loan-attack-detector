@@ -10,31 +10,35 @@
   + Multiple interactions with DeFi protocols (lending, swapping, withdrawing, etc.)
 
 * Contract Behavior:
-  + Interaction with protocols or pools to manipulate token prices, reserves, or governance.
+  + Interaction with protocols or pools to manipulate token prices, reserves, etc.
 
 * Address History:
-  + Newly created EOAs or smart contracts involved in complex operations.
+  + Newly created EOAs or smart contracts involved
+
+* Transaction complexity:
+  + Significant number of actions like token transfers in a single transaction
 
 ### 2. Detection methodology and transaction Analysis
 
 1. Flash Loan Detection => Identify transactions that involve:
-  + FlashLoan event emission from know providers
-  + Token inflows and immediate outflows.
+  + [x] FlashLoan event emission from know providers
+  + [ ]
 
 2. Analyze transactions for large balance changes in contracts:
-  + Look for significant inflows followed by outflows within the same transaction.
-  + Identify unusual token swaps (e.g., large price deviations).
-  + Spot sharp reserve changes in liquidity pools or vaults.
+  + [ ] Look for significant inflows followed by outflows within the same transaction.
+  + [ ] Spot sharp reserve changes in liquidity pools or vaults.
+  + [ ] Identify unusual token swaps (e.g., large price deviations).
 
 3. New Address Detection
-   - Check if the address initiating the transaction is a freshly deployed contract or a new EOA with no prior transaction history.
+  + [x] Check if `from` address is a freshly deployed contract
+  + [x] Check if `from` address is a new EOA with no prior transaction history
 
 4. Contract Creation
-   - Identify contracts deployed within the block that interact with Flash loan providers, DeFi protocols or pools.
+  + [ ] Identify contracts deployed within the block that interact with Flash loan providers, DeFi protocols or pools.
 
 5. Anomalous Patterns:
-  + High-value transfers involving multiple DeFi protocols (e.g., lending, swapping, withdrawing).
-  + Sequential complex operations in a single transaction.
+  + [ ] High-value transfers involving multiple DeFi protocols (e.g., lending, swapping, withdrawing).
+  + [ ] Complex operations in a single transaction.
 
 ### 3. Behavioral pattern analysis
 
@@ -42,7 +46,7 @@ Correlate behavioral anomalies to flag suspicious transactions:
 
 * Token price manipulation.
 * Reserve depletion of a liquidity pool.
-* Sequential contract interactions within a single transaction.
+* Multiple contract interactions within a single transaction.
 
 ### 4. Malicious score calculation with a weighting system
 
@@ -65,7 +69,8 @@ The API should return a structured response including:
 * `attackerAddress` : Address initiating the transaction.
 * `victimAddress` : Victim of the attack.
 * `amountLostInDollars` : Approximate amount lost due to the attack.
-* `confidenceScore` : A score (0-100) representing the likelihood of malicious intent.
+* `confidenceScore` : A score representing the likelihood of malicious intent.
 * `isFromNewAddress` : Boolean indicating whether the transaction initiator is a new address.
-* `severity` : Categorize as critical, high, moderate, or low.
-* `additionalDetails` : Any extra information, such as involved token symbols or impacted pools.
+* `isFromContract` : Boolean indicating whether the transaction initiator is a contract.
+* `loanTokenSymbol` : The symbol of the loaned token.
+* `flashLoanProvider` : The name of the protocol where the flash loan was taken.

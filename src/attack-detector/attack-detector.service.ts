@@ -80,9 +80,33 @@ export class AttackDetectorService {
     if (BigInt(loanAmount) > parseEther('100000')) {
       confidenceScore += 10;
     }
+
+    const txReceipt = await this.client.getTransactionReceipt({
+      hash: eventLog.transactionHash,
+    });
+
+    const attackerAddress = txReceipt.from;
+
+    const isFromContract = await this.isContract(attackerAddress);
+    if (isFromContract) {
+      confidenceScore += 10;
+    }
+
+    const isFromNewAddress = await this.isNewAddress(attackerAddress);
+    if (isFromNewAddress) {
+      confidenceScore += 10;
+    }
+
+    const transactionComplexity = txReceipt.logs.length;
+    if (transactionComplexity > 20) {
+      confidenceScore += 20;
+    }
     return {
       txHash: eventLog.transactionHash,
       isFlashLoan: true,
+      isFromNewAddress,
+      attackerAddress,
+      isFromContract,
       confidenceScore,
       loanTokenSymbol,
       flashLoanProvider,
@@ -134,5 +158,15 @@ export class AttackDetectorService {
     });
 
     return symbol;
+  }
+
+  private async isContract(address: Address): Promise<boolean> {
+    const code = await this.client.getCode({ address });
+    return code !== '0x';
+  }
+
+  private async isNewAddress(address: Address) {
+    const txCount = await this.client.getTransactionCount({ address });
+    return txCount === 0;
   }
 }
