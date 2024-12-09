@@ -66,6 +66,6 @@ The API should return a structured response including:
 * `victimAddress` : Victim of the attack.
 * `amountLostInDollars` : Approximate amount lost due to the attack.
 * `confidenceScore` : A score (0-100) representing the likelihood of malicious intent.
-* `isNewAddress` : Boolean indicating whether the transaction initiator is a new address.
+* `isFromNewAddress` : Boolean indicating whether the transaction initiator is a new address.
 * `severity` : Categorize as critical, high, moderate, or low.
 * `additionalDetails` : Any extra information, such as involved token symbols or impacted pools.
