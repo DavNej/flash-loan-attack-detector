@@ -7,6 +7,7 @@ import { mainnet } from 'viem/chains';
 import type {
   FlashLoanEventArgsAave,
   FlashLoanEventArgsBalancer,
+  TransferEventArgs,
 } from './utils';
 import { flashLoanEventsAbi, flashLoanProviders, ERC20_ABI } from './utils';
 
@@ -101,6 +102,10 @@ export class AttackDetectorService {
     if (transactionComplexity > 20) {
       confidenceScore += 20;
     }
+
+    const transactionHighTransfertEventsLogs =
+      await this.getTransactionHighTransfertEventLogs(eventLog);
+
     return {
       txHash: eventLog.transactionHash,
       isFlashLoan: true,
@@ -168,5 +173,39 @@ export class AttackDetectorService {
   private async isNewAddress(address: Address) {
     const txCount = await this.client.getTransactionCount({ address });
     return txCount === 0;
+  }
+
+  private async getTransactionHighTransfertEventLogs(
+    eventLog: EventLog,
+  ): Promise<(EventLog & { args: TransferEventArgs })[]> {
+    const transfertEventLogs = await this.client.getLogs({
+      event: ERC20_ABI.find(({ name }) => name === 'Transfer') as AbiEvent,
+      fromBlock: this.blockNumber,
+      toBlock: this.blockNumber,
+    });
+
+    const logs = [];
+
+    for (const log of transfertEventLogs) {
+      if (log.data === '0x') {
+        continue;
+      }
+
+      const { args } = decodeEventLog({
+        abi: ERC20_ABI,
+        data: log.data,
+        topics: log.topics,
+      }) as { args: TransferEventArgs };
+
+      const isLogRelevant =
+        log.transactionHash === eventLog.transactionHash &&
+        args.value >= parseEther('10000');
+
+      if (isLogRelevant) {
+        logs.push({ ...log, args });
+      }
+    }
+
+    return logs;
   }
 }

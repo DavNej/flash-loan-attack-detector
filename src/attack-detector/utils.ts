@@ -85,6 +85,12 @@ export type FlashLoanEventArgsAave = {
   referralCode: number;
 };
 
+export type TransferEventArgs = {
+  from: Address;
+  to: Address;
+  value: bigint;
+};
+
 export const ERC20_ABI = [
   {
     inputs: [],
