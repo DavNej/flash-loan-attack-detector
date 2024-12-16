@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 
 import type { AbiEvent, Address, Block, Log } from 'viem';
-import { createPublicClient, decodeEventLog, http, parseEther } from 'viem';
+import {
+  createPublicClient,
+  decodeEventLog,
+  formatEther,
+  http,
+  parseEther,
+} from 'viem';
 import { mainnet } from 'viem/chains';
 
 import type {
@@ -106,13 +112,34 @@ export class AttackDetectorService {
     const transactionHighTransfertEventsLogs =
       await this.getTransactionHighTransfertEventLogs(eventLog);
 
+    const { victimAddress, amountDrained } = await this.identifyVictim(
+      transactionHighTransfertEventsLogs,
+      attackerAddress,
+    );
+
+    if (amountDrained > 1000000) {
+      confidenceScore += 20;
+    }
+
+    let severity = 'low';
+    if (amountDrained > 10000000) {
+      severity = 'critical';
+    } else if (amountDrained > 1000000) {
+      severity = 'high';
+    } else if (amountDrained > 100000) {
+      severity = 'moderate';
+    }
+
     return {
       txHash: eventLog.transactionHash,
       isFlashLoan: true,
       isFromNewAddress,
       attackerAddress,
       isFromContract,
+      victimAddress,
       confidenceScore,
+      severity,
+      amountDrained: formatEther(amountDrained).toString(), // amount is not in dollar. Should call an oracle to do so
       loanTokenSymbol,
       flashLoanProvider,
       attackTime: this.blockDate.toLocaleString(),
@@ -207,5 +234,42 @@ export class AttackDetectorService {
     }
 
     return logs;
+  }
+
+  private async identifyVictim(
+    transferEventLogs: (EventLog & { args: TransferEventArgs })[],
+    attackerAddress: Address,
+  ) {
+    const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+    const victimBalances: Map<Address, bigint> = new Map();
+
+    for (const log of transferEventLogs) {
+      const { from, to, value } = log.args;
+      if (![attackerAddress, ZERO_ADDRESS].includes(from)) {
+        victimBalances.set(
+          from,
+          (victimBalances.get(from) || BigInt(0)) - value,
+        );
+      }
+
+      if (![attackerAddress, ZERO_ADDRESS].includes(to)) {
+        victimBalances.set(to, (victimBalances.get(to) || BigInt(0)) + value);
+      }
+    }
+
+    let victimAddress: Address | null = null;
+    let maxLoss = BigInt(0);
+
+    for (const [address, balanceChange] of victimBalances) {
+      if (balanceChange < BigInt(0) && balanceChange < maxLoss) {
+        maxLoss = balanceChange;
+        victimAddress = address;
+      }
+    }
+    const amountDrained = -maxLoss;
+    return {
+      victimAddress,
+      amountDrained,
+    };
   }
 }
